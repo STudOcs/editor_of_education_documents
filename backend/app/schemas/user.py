@@ -44,3 +44,15 @@ class TitlePageData(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None  # Новый пароль (необязательно)
+    
+    last_name: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    
+    group_name: Optional[str] = None
+    student_card: Optional[str] = None
+    department: Optional[str] = None

@@ -7,29 +7,43 @@ from app.api.deps import get_db, get_current_user
 from app.models.models import Document, Template, User
 from app.schemas.document import DocumentCreate, DocumentUpdate, DocumentResponse
 
+from app.services.user_service import UserService
+
 router = APIRouter()
 
-# 1. Создать документ (Самая важная логика)
 @router.post("/", response_model=DocumentResponse)
 async def create_document(
     doc_in: DocumentCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # А. Ищем шаблон, чтобы взять из него исходный код
+    # 1. Ищем шаблон
     result = await db.execute(select(Template).where(Template.template_id == doc_in.template_id))
     template = result.scalars().first()
     
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    # Б. Создаем документ, копируя latex_preambula_tmp в latex_source
+    # 2. Подготавливаем данные пользователя
+    user_data = UserService.get_title_page_data(current_user)
+    
+    # 3. Берем исходный код шаблона
+    source_latex = template.latex_preambula_tmp
+    
+    # 4. ВЫПОЛНЯЕМ ЗАМЕНУ МАРКЕРОВ
+    # Если в шаблоне есть эти слова, они заменятся на данные. Если нет - текст останется как есть.
+    filled_latex = source_latex.replace("VAR_GROUP", str(user_data["group"]))
+    filled_latex = filled_latex.replace("VAR_CARD", str(user_data["student_card"]))
+    # Можно использовать initials (Иванов И.И.) или signature_name (И.И. Иванов)
+    filled_latex = filled_latex.replace("VAR_STUDENT_SIGNATURE", str(user_data["initials"]))
+
+    # 5. Создаем документ уже с заполненными данными
     new_doc = Document(
         name_doc=doc_in.name_doc,
         user_id=current_user.user_id,
         template_id=template.template_id,
-        latex_source=template.latex_preambula_tmp, # <--- КОПИРОВАНИЕ
-        content_json={} # Пустой JSON редактора пока
+        latex_source=filled_latex, # <--- Сохраняем измененный текст
+        content_json={} 
     )
     
     db.add(new_doc)

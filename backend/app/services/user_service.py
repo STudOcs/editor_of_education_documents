@@ -35,6 +35,22 @@ class UserService:
         return result
     
     @staticmethod
+    def format_initials_reverse(last_name: str, first_name: str, middle_name: Optional[str] = None) -> str:
+        """
+        Формат: И.П. Иванов (часто нужно для подписей)
+        """
+        initials = ""
+        if first_name and first_name.strip():
+            initials += f"{first_name.strip()[0]}."
+        if middle_name and middle_name.strip():
+            initials += f"~{middle_name.strip()[0]}." # Тильда в LaTeX это неразрывный пробел
+        
+        if not last_name:
+            return ""
+            
+        return f"{initials} {last_name.strip()}" if initials else last_name.strip()
+
+    @staticmethod
     def get_title_page_data(user: User) -> Dict[str, Any]:
         """
         Извлекает данные пользователя для автозаполнения титульного листа.

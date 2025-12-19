@@ -4,7 +4,7 @@ from sqlalchemy import select
 from typing import List
 
 from app.api.deps import get_db, get_current_user
-from app.models.models import Template, User
+from app.models.models import Template, User, UserRole
 from app.schemas.template import TemplateCreate, TemplateResponse
 
 router = APIRouter()
@@ -27,10 +27,15 @@ async def create_template(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough privileges. Only admins can create templates."
+        )
+
     new_template = Template(
         name_tmp=template_in.name_tmp,
         definition_tmp=template_in.definition_tmp,
-        # Если фронт не передал текст, возьмется дефолтный из Pydantic
         latex_preambula_tmp=template_in.latex_preambula_tmp 
     )
     db.add(new_template)
@@ -45,6 +50,13 @@ async def delete_template(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # ПРОВЕРКА ПРАВ
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough privileges. Only admins can delete templates."
+        )
+
     result = await db.execute(select(Template).where(Template.template_id == template_id))
     template = result.scalars().first()
     

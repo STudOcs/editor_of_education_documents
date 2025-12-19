@@ -8,7 +8,7 @@ from app.api.deps import get_db, get_current_user
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
 from app.models.models import User, UserRole
-from app.schemas.user import UserCreate, UserResponse, Token, TitlePageData
+from app.schemas.user import UserCreate, UserResponse, Token, TitlePageData, UserUpdate
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -148,4 +148,55 @@ async def get_my_title_data(
 # Тестовая защищенная ручка
 @router.get("/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.put("/me", response_model=UserResponse)
+async def update_user_me(
+    user_in: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Обновление профиля текущего пользователя.
+    Можно менять ФИО, группу, email и пароль.
+    """
+    
+    # 1. Проверка уникальности Email (если пользователь решил его сменить)
+    if user_in.email is not None and user_in.email != current_user.email:
+        # Ищем, не занят ли новый email кем-то другим
+        result = await db.execute(select(User).where(User.email == user_in.email))
+        existing_user = result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+                status_code=400, 
+                detail="Этот Email уже используется другим пользователем."
+            )
+        current_user.email = user_in.email
+
+    # 2. Смена пароля (если передан новый)
+    if user_in.password is not None:
+        # Хешируем новый пароль перед сохранением
+        current_user.password_hash = get_password_hash(user_in.password)
+
+    # 3. Обновление остальных текстовых полей
+    # Мы проходимся по списку полей, и если в JSON пришло значение — обновляем
+    if user_in.last_name is not None:
+        current_user.last_name = user_in.last_name
+    if user_in.first_name is not None:
+        current_user.first_name = user_in.first_name
+    if user_in.middle_name is not None:
+        current_user.middle_name = user_in.middle_name
+        
+    if user_in.group_name is not None:
+        current_user.group_name = user_in.group_name
+    if user_in.student_card is not None:
+        current_user.student_card = user_in.student_card
+    if user_in.department is not None:
+        current_user.department = user_in.department
+
+    # 4. Сохранение в БД
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    
     return current_user
