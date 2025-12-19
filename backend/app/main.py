@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import auth, templates # <--- Импортируем templates
+from app.api import auth, templates, documents 
 from app.services.latex_compiler import check_latex_availability
 
 app = FastAPI(title="Report Constructor API")
@@ -11,7 +11,8 @@ async def startup_event():
     print(f"LaTeX Check: {msg}")
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
-app.include_router(templates.router, prefix="/templates", tags=["Templates"]) # <--- Подключаем
+app.include_router(templates.router, prefix="/templates", tags=["Templates"])
+app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 
 @app.get("/")
 def root():

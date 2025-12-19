@@ -34,7 +34,7 @@ class TitlePageData(BaseModel):
     middle_name: Optional[str]
     initials: str  # Иванов И.П.
     group: Optional[str]
-    student_card: Optional[int]
+    student_card: Optional[str]
     department: Optional[str]
     
     class Config:
