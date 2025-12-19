@@ -16,11 +16,19 @@ class User(Base):
     login = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    name_user = Column(String, nullable=True)
+    
+    last_name = Column(String, nullable=False)  # Фамилия (обязательно)
+    first_name = Column(String, nullable=False)  # Имя (обязательно)
+    middle_name = Column(String, nullable=True)  # Отчество (необязательно)
+    
+    group_name = Column(String, nullable=True)   # Группа
+    student_card = Column(String, nullable=True) # Номер зачетки
+    department = Column(String, nullable=True)   # Кафедра
+    
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     registration_date = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Связи (relationships)
+    # Связи
     documents = relationship("Document", back_populates="user")
     images = relationship("Image", back_populates="user")
     feedbacks = relationship("Feedback", back_populates="user")
