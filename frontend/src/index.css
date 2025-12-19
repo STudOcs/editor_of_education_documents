@@ -15,3 +15,170 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Editor styles */
+.editor-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.toolbar button {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.toolbar button.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.editor-content {
+  flex: 1;
+  overflow: auto;
+  background: #f5f5f5;
+  padding: 20px;
+}
+
+/* A4 Page Styles */
+.a4-container {
+  max-width: 794px; /* A4 width in pixels at 96 DPI */
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.a4-page {
+  background: white;
+  min-height: 1123px; /* A4 height in pixels at 96 DPI */
+  padding: 72px; /* 2.5cm margins */
+  position: relative;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 14pt;
+  line-height: 1.5;
+}
+
+.a4-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid #e5e7eb;
+  pointer-events: none;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  min-height: 800px;
+  outline: none;
+}
+
+.ProseMirror h1 {
+  font-size: 16pt;
+  font-weight: bold;
+  margin: 24pt 0 12pt 0;
+  text-align: center;
+}
+
+.ProseMirror h2 {
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 18pt 0 9pt 0;
+}
+
+.ProseMirror h3 {
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 12pt 0 6pt 0;
+}
+
+.ProseMirror p {
+  margin: 0 0 12pt 0;
+  text-indent: 1.25cm;
+}
+
+.ProseMirror p:first-of-type {
+  text-indent: 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 12pt 0;
+  padding-left: 1.5cm;
+}
+
+.ProseMirror li {
+  margin-bottom: 6pt;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #ccc;
+  margin: 12pt 0;
+  padding-left: 12pt;
+  font-style: italic;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 12pt 0;
+  width: 100%;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid #ccc;
+  padding: 6pt 8pt;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f9fafb;
+  font-weight: bold;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 12pt auto;
+}
+
+.page-break {
+  page-break-after: always;
+  border-top: 2px dashed #ccc;
+  margin: 40pt 0;
+  padding-top: 20pt;
+}
+
+.footnote {
+  vertical-align: super;
+  font-size: 0.8em;
+  color: #3b82f6;
+  cursor: help;
+}
