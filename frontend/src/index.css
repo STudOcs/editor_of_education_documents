@@ -437,3 +437,43 @@ html, body, #root {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* src/index.css */
+
+/* Специальные стили для титульного листа */
+.latex-title-page table {
+  border: none !important; /* Убираем рамки на титульнике */
+}
+
+.latex-title-page td {
+  border: none !important;
+  padding: 2px !important;
+}
+
+.latex-title-page strong {
+  text-transform: uppercase;
+}
+
+/* Линия подписи */
+.latex-title-page u {
+  text-decoration: none;
+  border-bottom: 1px solid black;
+  display: inline-block;
+  min-width: 100px;
+}
+
+/* Убираем сетку на титульном листе */
+.latex-title-page table {
+  border: none !important;
+}
+
+.latex-title-page td {
+  border: none !important;
+  padding: 5px !important;
+}
+
+/* Скрываем маркер разрыва страницы, если он мешает на титульнике */
+.page-break span {
+    font-weight: bold;
+    color: #ea580c;
+}

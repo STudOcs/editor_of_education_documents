@@ -1,24 +1,27 @@
+// src/shared/api/authService.ts
 import { $api } from './base';
-import { AuthResponse } from '../../features/auth-by-email/model/types';
+import { RegisterData, LoginResponse } from '../../entities/user/model/types';
 
 export const authService = {
-  async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await $api.post<AuthResponse>('/auth/login', { email, password });
-    if (response.data.accessToken) {
-      localStorage.setItem('token', response.data.accessToken);
-    }
-    return response.data;
+  // Логин через OAuth2 (form-data)
+  async login(loginValue: string, passwordValue: string): Promise<LoginResponse> {
+    const params = new URLSearchParams();
+    params.append('username', loginValue); // FastAPI ожидает именно 'username'
+    params.append('password', passwordValue);
+
+    const { data } = await $api.post<LoginResponse>('/auth/login', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    localStorage.setItem('token', data.access_token);
+    return data;
   },
 
-  async register(email: string, password: string, fullName: string): Promise<AuthResponse> {
-    const response = await $api.post<AuthResponse>('/auth/register', { 
-      email, 
-      password, 
-      fullName 
-    });
-    if (response.data.accessToken) {
-      localStorage.setItem('token', response.data.accessToken);
-    }
+  // Регистрация (JSON)
+  async register(data: RegisterData): Promise<any> {
+    const response = await $api.post('/auth/register', data);
     return response.data;
   },
 

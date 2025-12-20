@@ -1,16 +1,30 @@
+// src/shared/api/base.ts
 import axios from 'axios';
-// Базовый URL твоего бэкенда (из .env или константа)
-const API_URL = 'http://localhost:5000/api'; 
+
+export const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 export const $api = axios.create({
-  baseURL: API_URL,
+    baseURL: API_URL, // Проверь, что это поле заполнено!
+    withCredentials: true,
 });
 
-// Интерцептор для добавления токена к каждому запросу
+// Интерцептор для автоматической подстановки токена
 $api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
+
+// Интерцептор для обработки ошибок (например, 401 - токен просрочен)
+$api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);

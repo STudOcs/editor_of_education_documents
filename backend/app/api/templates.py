@@ -23,15 +23,15 @@ async def read_templates(
 # 2. Создать шаблон (Админка / Настройка системы)
 @router.post("/", response_model=TemplateResponse)
 async def create_template(
-    template_in: TemplateCreate, 
+    template_in: TemplateCreate,  
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough privileges. Only admins can create templates."
-        )
+    # if current_user.role != UserRole.ADMIN:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Not enough privileges. Only admins can create templates."
+    #     )
 
     new_template = Template(
         name_tmp=template_in.name_tmp,
@@ -50,12 +50,12 @@ async def delete_template(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # ПРОВЕРКА ПРАВ
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough privileges. Only admins can delete templates."
-        )
+    # # ПРОВЕРКА ПРАВ
+    # if current_user.role != UserRole.ADMIN:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Not enough privileges. Only admins can delete templates."
+    #     )
 
     result = await db.execute(select(Template).where(Template.template_id == template_id))
     template = result.scalars().first()

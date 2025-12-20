@@ -1,99 +1,48 @@
+// src/features/auth-by-email/ui/LoginForm.tsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../../../shared/ui/Button';
-import { Input } from '../../../shared/ui/Input';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../../shared/api/authService';
+import { Input } from '../../../shared/ui/Input';
+import { Button } from '../../../shared/ui/Button';
 
 export const LoginForm = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
     try {
-      if (isLogin) {
-        await authService.login(email, password);
-      } else {
-        await authService.register(email, password, fullName);
-      }
-      // После успешного входа редиректим в личный кабинет
+      await authService.login(login, password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Произошла ошибка при авторизации');
+      setError(err.response?.data?.detail || 'Неверный логин или пароль');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-xl border border-gray-100">
-      <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isLogin ? 'Вход в систему' : 'Регистрация'}
-        </h1>
-        <p className="text-gray-500 text-sm mt-2">Редактор учебных документов СФУ</p>
+    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-md p-8 bg-white shadow-xl rounded-2xl">
+      <div className="text-center">
+        <h2 className="text-3xl font-black text-orange-600">СФУ.ДОК</h2>
+        <p className="text-gray-500 mt-2">Вход в систему</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-100">
-            {error}
-          </div>
-        )}
+      {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">{error}</div>}
 
-        {!isLogin && (
-          <Input 
-            label="ФИО" 
-            placeholder="Иванов Иван Иванович" 
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-          />
-        )}
-        
-        <Input 
-          label="Email" 
-          type="email" 
-          placeholder="student@sfu-kras.ru" 
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        
-        <Input 
-          label="Пароль" 
-          type="password" 
-          placeholder="••••••••" 
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Создать аккаунт')}
-        </Button>
-      </form>
+      <Input label="Логин" value={login} onChange={e => setLogin(e.target.value)} required />
+      <Input label="Пароль" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
 
-      <div className="mt-6 text-center">
-        <button 
-          onClick={() => {
-            setIsLogin(!isLogin);
-            setError(null);
-          }}
-          className="text-orange-600 hover:underline text-sm"
-        >
-          {isLogin ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
-        </button>
-      </div>
-    </div>
+      <Button type="submit" disabled={isLoading}>{isLoading ? 'Вход...' : 'Войти'}</Button>
+
+      <p className="text-center text-sm text-gray-500">
+        Нет аккаунта? <Link to="/register" className="text-orange-600 font-bold hover:underline">Создать</Link>
+      </p>
+    </form>
   );
 };

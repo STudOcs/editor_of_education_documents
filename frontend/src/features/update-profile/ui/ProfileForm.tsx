@@ -1,3 +1,4 @@
+// src/features/update-profile/ui/ProfileForm.tsx
 import { useState } from 'react';
 import { Input } from '../../../shared/ui/Input';
 import { Button } from '../../../shared/ui/Button';
@@ -8,29 +9,32 @@ interface ProfileFormProps {
   onSave: (data: UpdateProfileDto) => void;
 }
 
+// Тип для локального состояния формы (профиль + поле пароля)
+type FormData = UserProfile & { password?: string };
+
 export const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
-  const [formData, setFormData] = useState<UserProfile & { password?: string }>({
+  const [formData, setFormData] = useState<FormData>({
     ...initialData,
     password: '',
   });
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Собираем только измененные поля
     const changedFields: UpdateProfileDto = {};
     
+    // Сравниваем только поля профиля
     (Object.keys(initialData) as Array<keyof UserProfile>).forEach((key) => {
       if (formData[key] !== initialData[key]) {
-        changedFields[key] = formData[key];
+        // TypeScript теперь понимает, что мы записываем корректные типы
+        (changedFields as any)[key] = formData[key];
       }
     });
 
-    // Отдельно проверяем пароль
     if (formData.password && formData.password.trim() !== '') {
       changedFields.password = formData.password;
     }
@@ -40,7 +44,6 @@ export const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-      {/* Личные данные */}
       <section>
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-1 h-6 bg-orange-600 rounded-full" />
@@ -53,7 +56,6 @@ export const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
         </div>
       </section>
 
-      {/* Учебные данные */}
       <section>
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-1 h-6 bg-orange-600 rounded-full" />
@@ -68,7 +70,6 @@ export const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
         </div>
       </section>
 
-      {/* Аккаунт */}
       <section>
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <span className="w-1 h-6 bg-orange-600 rounded-full" />
@@ -76,7 +77,7 @@ export const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
-          <Input label="Новый пароль" type="password" placeholder="Оставьте пустым, чтобы не менять" value={formData.password} onChange={(e) => handleChange('password', e.target.value)} />
+          <Input label="Новый пароль" type="password" placeholder="Оставьте пустым..." value={formData.password || ''} onChange={(e) => handleChange('password', e.target.value)} />
         </div>
       </section>
 

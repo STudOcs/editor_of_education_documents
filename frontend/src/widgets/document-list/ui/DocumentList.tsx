@@ -1,29 +1,46 @@
-import { DocumentCard } from '../../../entities/document/ui/DocumentCard';
-import { MOCK_DOCUMENTS } from '../../../entities/document/model/mockData';
+// src/widgets/document-list/ui/DocumentList.tsx
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Loader2 } from 'lucide-react';
+import { DocumentCard } from '../../../entities/document/ui/DocumentCard';
+import { documentService } from '../../../shared/api/documentService';
+import { DocumentItem } from '../../../entities/document/model/types';
 
 export const DocumentList = () => {
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    documentService.getAll()
+      .then(data => setDocuments(data))
+      .catch(err => console.error("Ошибка загрузки:", err))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="animate-spin text-orange-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {/* Кнопка создания нового документа всегда первая */}
       <div 
         onClick={() => navigate('/create')}
-        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer group"
+        className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-2xl hover:border-orange-400 hover:bg-orange-50 transition-all cursor-pointer group h-[220px]"
       >
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-2 group-hover:bg-orange-100 text-gray-400 group-hover:text-orange-600 transition-colors">
-          <span className="text-2xl font-light">+</span>
-        </div>
-        <span className="text-sm font-medium text-gray-500 group-hover:text-orange-700">Создать документ</span>
+        <Plus size={32} className="text-gray-400 group-hover:text-orange-600 mb-2" />
+        <span className="text-sm font-medium text-gray-500">Создать документ</span>
       </div>
 
-      {/* Вывод списка */}
-      {MOCK_DOCUMENTS.map((doc) => (
+      {documents.map((doc) => (
         <DocumentCard 
-          key={doc.id} 
+          key={doc.doc_id} 
           doc={doc} 
-          onClick={() => navigate(`/editor/${doc.id}`)} 
+          onClick={() => navigate(`/editor/${doc.doc_id}`)} 
         />
       ))}
     </div>

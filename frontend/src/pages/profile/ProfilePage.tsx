@@ -2,29 +2,46 @@ import { ProfileForm } from '../../features/update-profile/ui/ProfileForm';
 import { UpdateProfileDto, UserProfile } from '../../entities/user/model/types';
 import { MessageCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { userService } from '../../shared/api/userService';
 
-const MOCK_USER: UserProfile = {
-  last_name: 'Иванов',
-  first_name: 'Иван',
-  middle_name: 'Иванович',
-  group_name: 'КИ21-01',
-  student_card: '21104432',
-  department: 'Кафедра систем искусственного интеллекта',
-  email: 'ivanov@sfu-kras.ru',
-};
+// const MOCK_USER: UserProfile = {
+//   last_name: 'Иванов',
+//   first_name: 'Иван',
+//   middle_name: 'Иванович',
+//   group_name: 'КИ21-01',
+//   student_card: '21104432',
+//   department: 'Кафедра систем искусственного интеллекта',
+//   email: 'ivanov@sfu-kras.ru',
+// };
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const feedbackUrl = "https://docs.google.com/forms/d/e/1FAIpQLScuvUkGg41Uax6eSm3YTB7dLTbKV4ZTZwObdqewu5MvkJ1D3w/viewform?usp=publish-editor";
 
-  const handleSave = (changedData: UpdateProfileDto) => {
-    if (Object.keys(changedData).length === 0) {
-      alert("Изменений не обнаружено");
-      return;
-    }
-    console.log("Отправка на бэкенд:", changedData);
-    alert("Данные успешно сохранены (имитация)");
+
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+      userService.getProfile()
+          .then(data => setUser(data))
+          .catch(err => setError('Не удалось загрузить данные профиля'))
+          .finally(() => setIsLoading(false));
+  }, []);
+
+  const handleSave = async (changedData: UpdateProfileDto) => {
+      try {
+          const updatedUser = await userService.updateProfile(changedData);
+          setUser(updatedUser); // Обновляем локальное состояние новыми данными
+          alert("Профиль успешно обновлен");
+      } catch (err: any) {
+          alert(err.response?.data?.message || "Ошибка при сохранении");
+      }
   };
+
+  if (isLoading) return <div className="p-20 text-center text-orange-600">Загрузка профиля...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -42,7 +59,12 @@ const ProfilePage = () => {
 
       <main className="max-w-4xl mx-auto px-4 mt-8 space-y-6">
         {/* Форма */}
-        <ProfileForm initialData={MOCK_USER} onSave={handleSave} />
+        {user && (
+            <ProfileForm 
+                initialData={user} 
+                onSave={handleSave} 
+            />
+        )}
 
         {/* Секция обратной связи */}
         <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
