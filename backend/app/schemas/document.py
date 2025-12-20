@@ -25,6 +25,12 @@ class DocumentResponse(DocumentBase):
     latex_source: Optional[str]
     creation_data_doc: datetime
     changes_data_doc: Optional[datetime]
+    
+    # Поля для PDF компиляции
+    pdf_path: Optional[str] = None
+    compilation_status: str = "not_compiled"  # Дефолтное значение
+    compilation_log: Optional[str] = None
+    pdf_generated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

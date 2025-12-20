@@ -54,6 +54,12 @@ class Document(Base):
     content_json = Column(JSON, nullable=True) 
     latex_source = Column(Text, nullable=True)
     
+    # PDF генерация
+    pdf_path = Column(String, nullable=True)  # путь к PDF файлу
+    pdf_generated_at = Column(DateTime(timezone=True), nullable=True)
+    compilation_status = Column(String, default="not_compiled")  # not_compiled, success, error
+    compilation_log = Column(Text, nullable=True)  # логи компиляции
+    
     creation_data_doc = Column(DateTime(timezone=True), server_default=func.now())
     changes_data_doc = Column(DateTime(timezone=True), onupdate=func.now())
     
