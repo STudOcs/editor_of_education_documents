@@ -1,31 +1,44 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import LinkExtension from '@tiptap/extension-link';
-import ImageExtension from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import { Table } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import Placeholder from '@tiptap/extension-placeholder';
 import Blockquote from '@tiptap/extension-blockquote';
 import HardBreak from '@tiptap/extension-hard-break';
-import Dropcursor from '@tiptap/extension-dropcursor';
-import Gapcursor from '@tiptap/extension-gapcursor';
+import Highlight from '@tiptap/extension-highlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Document from '@tiptap/extension-document';
 
-// Для таблиц используем отдельную библиотеку
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
+
 
 interface TipTapEditorProps {
-  content?: string;
+  initialContent?: string;
   onContentChange?: (content: string) => void;
 }
 
-const TipTapEditor: React.FC<TipTapEditorProps> = ({ content = '', onContentChange }) => {
+const TipTapEditor: React.FC<TipTapEditorProps> = ({ 
+  initialContent = '<h1>Отчет по учебной практике</h1><h2>Введение</h2><p>Начните вводить текст вашего документа здесь...</p>', 
+  onContentChange 
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('https://');
-  const [linkText, setLinkText] = useState('');
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
+  const [pages, setPages] = useState<string[]>(['']);
+
+  const A4_WIDTH = 794; // Ширина А4 в пикселях
+  const A4_HEIGHT = 1123; // Высота А4 в пикселях
+  const PAGE_MARGIN = 72; // Отступы страницы
 
   const editor = useEditor({
     extensions: [
@@ -35,351 +48,449 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content = '', onContentChan
         },
         bulletList: {
           keepMarks: true,
-          keepAttributes: false,
         },
         orderedList: {
           keepMarks: true,
-          keepAttributes: false,
+        },
+        horizontalRule: {
+          HTMLAttributes: {
+            class: 'my-8 border-t-2 border-gray-300',
+          },
+        },
+        hardBreak: {
+          HTMLAttributes: {
+            class: 'hard-break',
+          },
         },
       }),
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right'],
+        alignments: ['left', 'center', 'right', 'justify'],
       }),
-      LinkExtension.configure({
-        openOnClick: true,
-        linkOnPaste: true,
+      Link.configure({
+        openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-600 hover:text-blue-800 underline',
+          class: 'text-blue-600 hover:text-blue-800 underline cursor-pointer',
         },
       }),
-      ImageExtension.configure({
+      Image.configure({
         inline: true,
         allowBase64: true,
         HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg my-4',
+          class: 'rounded-lg max-w-full h-auto my-4',
         },
       }),
       Table.configure({
         resizable: true,
         HTMLAttributes: {
-          class: 'min-w-full border-collapse my-4',
+          class: 'min-w-full border-collapse border border-gray-300 my-4',
         },
       }),
-      TableRow.configure({}),
-      TableCell.configure({}),
-      TableHeader.configure({}),
+      TableRow,
+      TableCell,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'bg-gray-100 font-semibold',
+        },
+      }),
       Blockquote.configure({
         HTMLAttributes: {
-          class: 'border-l-4 border-gray-300 pl-4 my-4 italic text-gray-600',
+          class: 'border-l-4 border-blue-500 pl-4 my-4 italic text-gray-700 bg-blue-50 py-2',
         },
       }),
       HardBreak,
-      Dropcursor,
-      Gapcursor,
+      Placeholder.configure({
+        placeholder: 'Начните писать здесь...',
+      }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: 'pl-0 my-2',
+        },
+      }),
+      TaskItem.configure({
+        HTMLAttributes: {
+          class: 'flex items-start my-1',
+        },
+        nested: true,
+      }),
+      Highlight.configure({
+        multicolor: true,
+      }),
     ],
-    content: content || `
-      <div class="a4-page">
-        <p></p>
-      </div>
-    `,
+    content: initialContent,
     onUpdate: ({ editor }) => {
+      const newContent = editor.getHTML();
+      
       if (onContentChange) {
-        onContentChange(editor.getHTML());
+        onContentChange(newContent);
       }
+      
+      // Разбиваем контент на страницы
+      splitContentIntoPages(newContent);
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-lg focus:outline-none min-h-[500px]',
+        class: 'prose prose-lg max-w-none focus:outline-none',
       },
     },
   });
 
-  // Функция для вставки изображения
+  // Разбиваем контент на страницы
+  const splitContentIntoPages = (content: string) => {
+    if (!editor) return;
+    
+    // Ищем разрывы страниц
+    const pageBreaks = content.split(/<div class="page-break"[^>]*><\/div>/g);
+    
+    // Если есть разрывы, используем их
+    if (pageBreaks.length > 1) {
+      setPages(pageBreaks.filter(page => page.trim() !== ''));
+    } else {
+      // Если нет разрывов, разбиваем по высоте
+      const editorElement = editor.view.dom;
+      const elements = Array.from(editorElement.children) as HTMLElement[];
+      
+      const newPages: string[] = [];
+      let currentPageHeight = 0;
+      let currentPageContent: string[] = [];
+      const maxPageHeight = A4_HEIGHT - (PAGE_MARGIN * 2);
+      
+      elements.forEach((element, index) => {
+        const elementHeight = element.offsetHeight || 50; // Примерная высота
+        const elementHTML = element.outerHTML;
+        
+        if (currentPageHeight + elementHeight > maxPageHeight && currentPageContent.length > 0) {
+          // Сохраняем текущую страницу и начинаем новую
+          newPages.push(currentPageContent.join(''));
+          currentPageContent = [elementHTML];
+          currentPageHeight = elementHeight;
+        } else {
+          currentPageContent.push(elementHTML);
+          currentPageHeight += elementHeight;
+        }
+      });
+      
+      // Добавляем последнюю страницу
+      if (currentPageContent.length > 0) {
+        newPages.push(currentPageContent.join(''));
+      }
+      
+      setPages(newPages.length > 0 ? newPages : ['']);
+    }
+  };
+
+  // Эффект для инициализации разбиения на страницы
+  useEffect(() => {
+    if (editor) {
+      splitContentIntoPages(editor.getHTML());
+    }
+  }, [editor]);
+
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && editor) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        if (base64) {
-          editor.chain().focus().setImage({ src: base64 }).run();
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          editor.chain().focus().setImage({ src: result }).run();
         }
       };
       reader.readAsDataURL(file);
     }
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Функция для вставки таблицы
   const insertTable = () => {
     if (editor) {
       editor
         .chain()
         .focus()
-        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .insertTable({ rows: tableRows, cols: tableCols, withHeaderRow: true })
         .run();
+      setIsTableModalOpen(false);
     }
   };
 
-  // Функция для вставки ссылки
   const setLink = () => {
     if (editor) {
-      if (linkUrl) {
-        if (linkText) {
-          editor
-            .chain()
-            .focus()
-            .insertContent(`<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`)
-            .run();
-        } else {
-          editor
-            .chain()
-            .focus()
-            .setLink({ href: linkUrl })
-            .run();
-        }
+      if (linkUrl === '') {
+        editor.chain().focus().unsetLink().run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .setLink({ href: linkUrl })
+          .run();
       }
       setIsLinkModalOpen(false);
       setLinkUrl('https://');
-      setLinkText('');
     }
   };
 
-  // Функция для вставки сноски
-  const insertFootnote = () => {
-    const text = prompt('Введите текст сноски:', '');
-    if (text && editor) {
-      const number = Math.floor(Math.random() * 100) + 1;
-      editor
-        .chain()
-        .focus()
-        .insertContent(`<sup class="footnote" data-footnote="${text}">[${number}]</sup>`)
-        .run();
-    }
-  };
 
-  // Функция для обрыва страницы
-  const insertPageBreak = () => {
-    if (editor) {
-      editor
-        .chain()
-        .focus()
-        .insertContent('<div class="page-break"></div>')
-        .run();
-    }
+  // Рассчитываем примерную высоту контента
+  const calculateContentHeight = (content: string): number => {
+    // Простая эвристика: примерно 20px на строку
+    const lines = content.split(/<\/?(p|h[1-6]|div|li)[^>]*>/gi).length;
+    return lines * 20;
   };
 
   if (!editor) {
-    return (
-      <div className="flex items-center justify-center min-h-[500px] bg-gray-50">
-        <div className="text-center">
-          <svg className="animate-spin h-8 w-8 text-blue-600 mx-auto" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          <p className="mt-2 text-gray-600">Загрузка редактора...</p>
-        </div>
-      </div>
-    );
+    return <div className="p-8">Загрузка редактора...</div>;
   }
 
   return (
-    <div className="editor-wrapper">
-      {/* Панель инструментов */}
-      <div className="toolbar bg-white border-b border-gray-200 p-3 flex flex-wrap gap-2 items-center sticky top-0 z-50">
-        {/* Заголовки */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={`px-3 py-1.5 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Заголовок 1"
-          >
-            H1
-          </button>
-          <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={`px-3 py-1.5 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Заголовок 2"
-          >
-            H2
-          </button>
-          <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={`px-3 py-1.5 rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Заголовок 3"
-          >
-            H3
-          </button>
+    <div className="flex flex-col h-full">
+      {/* Верхняя панель инструментов */}
+      <div className="toolbar border-b border-gray-200 px-4 py-3 bg-white flex flex-wrap items-center gap-2 sticky top-0 z-10">
+        
+        {/* Статистика страниц */}
+        <div className="flex items-center border-r border-gray-300 pr-3">
+          <span className="text-sm text-gray-600">
+            Страниц: {pages.length}
+          </span>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+        {/* Заголовки */}
+        <div className="flex items-center border-r border-gray-300 pr-3">
+          <select
+            value={editor.getAttributes('heading')?.level || 'paragraph'}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === 'paragraph') {
+                editor.chain().focus().setParagraph().run();
+              } else {
+                editor.chain().focus().toggleHeading({ level: parseInt(value) as 1 | 2 | 3 }).run();
+              }
+            }}
+            className="border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="paragraph">Обычный текст</option>
+            <option value="1">Заголовок 1</option>
+            <option value="2">Заголовок 2</option>
+            <option value="3">Заголовок 3</option>
+          </select>
+        </div>
 
-        {/* Форматирование текста */}
-        <div className="flex items-center gap-1">
+        {/* Основное форматирование */}
+        <div className="flex items-center border-r border-gray-300 pr-3 gap-1">
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`p-2 rounded ${editor.isActive('bold') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Жирный"
+            className={`p-2 rounded ${editor.isActive('bold') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Жирный (Ctrl+B)"
           >
-            <strong>B</strong>
+            <strong className="font-bold">B</strong>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`p-2 rounded ${editor.isActive('italic') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Курсив"
+            className={`p-2 rounded ${editor.isActive('italic') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Курсив (Ctrl+I)"
           >
-            <em>I</em>
+            <em className="italic">I</em>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleUnderline().run()}
-            className={`p-2 rounded ${editor.isActive('underline') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Подчеркнутый"
+            className={`p-2 rounded ${editor.isActive('underline') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Подчеркнутый (Ctrl+U)"
           >
-            <u>U</u>
+            <u className="underline">U</u>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleStrike().run()}
+            className={`p-2 rounded ${editor.isActive('strike') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Зачеркнутый"
+          >
+            <span className="line-through">S</span>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHighlight().run()}
+            className={`p-2 rounded ${editor.isActive('highlight') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Выделение"
+          >
+            <span className="bg-yellow-200 px-1">H</span>
           </button>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+        {/* Выравнивание */}
+        <div className="flex items-center border-r border-gray-300 pr-3 gap-1">
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            className={`p-2 rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Выровнять по левому краю"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 6h18M3 14h10M3 18h10" />
+            </svg>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            className={`p-2 rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Выровнять по центру"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M6 6h12M6 14h12M3 18h18" />
+            </svg>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            className={`p-2 rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Выровнять по правому краю"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M9 6h12M9 14h12M3 18h18" />
+            </svg>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+            className={`p-2 rounded ${editor.isActive({ textAlign: 'justify' }) ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Выровнять по ширине"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 6h18M3 14h18M3 18h18" />
+            </svg>
+          </button>
+        </div>
 
         {/* Списки */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center border-r border-gray-300 pr-3 gap-1">
           <button
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`p-2 rounded ${editor.isActive('bulletList') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
+            className={`p-2 rounded ${editor.isActive('bulletList') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
             title="Маркированный список"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7" />
+              <circle cx="4" cy="12" r="2" />
+              <circle cx="4" cy="6" r="2" />
+              <circle cx="4" cy="18" r="2" />
             </svg>
           </button>
           <button
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`p-2 rounded ${editor.isActive('orderedList') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
+            className={`p-2 rounded ${editor.isActive('orderedList') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
             title="Нумерованный список"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            className={`p-2 rounded ${editor.isActive('taskList') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Список задач"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              <rect x="3" y="10" width="12" height="4" rx="2" fill="currentColor" />
             </svg>
           </button>
         </div>
 
-        <div className="w-px h-6 bg-gray-300 mx-1"></div>
-
-        {/* Элементы */}
-        <div className="flex items-center gap-1">
+        {/* Вставка элементов */}
+        <div className="flex items-center border-r border-gray-300 pr-3 gap-1">
           <button
             onClick={() => setIsLinkModalOpen(true)}
-            className={`p-2 rounded ${editor.isActive('link') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Вставить ссылку"
+            className={`p-2 rounded hover:bg-gray-100 ${editor.isActive('link') ? 'bg-blue-100 text-blue-600' : ''}`}
+            title="Вставить ссылку (Ctrl+K)"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </button>
+          
+          <div className="relative">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+              id="image-upload"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded hover:bg-gray-100"
+              title="Вставить изображение"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
+          
           <button
-            onClick={insertFootnote}
-            className="p-2 rounded hover:bg-gray-100"
-            title="Вставить сноску"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={`p-2 rounded ${editor.isActive('blockquote') ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
-            title="Вставить цитату"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="w-px h-6 bg-gray-300 mx-1"></div>
-
-        {/* Таблицы и изображения */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={insertTable}
+            onClick={() => setIsTableModalOpen(true)}
             className="p-2 rounded hover:bg-gray-100"
             title="Вставить таблицу"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18M3 18h18M3 6h18M6 3v18M9 3v18M12 3v18M15 3v18" />
             </svg>
           </button>
+          
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded hover:bg-gray-100"
-            title="Вставить изображение"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`p-2 rounded ${editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+            title="Цитата"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
           </button>
+          
           <button
-            onClick={insertPageBreak}
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
             className="p-2 rounded hover:bg-gray-100"
-            title="Обрыв страницы"
+            title="Горизонтальная линия"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 13H5m14 0a2 2 0 012 2v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 13V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           </button>
+          
         </div>
 
-        {/* Скрытый input для изображений */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
-      </div>
-
-      {/* Область редактора */}
-      <div className="editor-content">
-        <div className="a4-container">
-          <div className="a4-page">
-            <EditorContent editor={editor} />
-          </div>
+        {/* Дополнительные действия */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => editor.chain().focus().undo().run()}
+            className="p-2 rounded hover:bg-gray-100"
+            title="Отменить (Ctrl+Z)"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().redo().run()}
+            className="p-2 rounded hover:bg-gray-100"
+            title="Повторить (Ctrl+Y)"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Модальное окно для ссылки */}
       {isLinkModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-4">Вставить ссылку</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">URL:</label>
-                <input
-                  type="url"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="https://example.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Текст ссылки:</label>
-                <input
-                  type="text"
-                  value={linkText}
-                  onChange={(e) => setLinkText(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Текст ссылки"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3 mt-6">
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsLinkModalOpen(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
@@ -396,6 +507,111 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content = '', onContentChan
           </div>
         </div>
       )}
+
+      {/* Модальное окно для таблицы */}
+      {isTableModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Вставить таблицу</h3>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Количество строк
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={tableRows}
+                  onChange={(e) => setTableRows(parseInt(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Количество столбцов
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={tableCols}
+                  onChange={(e) => setTableCols(parseInt(e.target.value))}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsTableModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={insertTable}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Вставить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Основное содержимое - редактор с визуализацией страниц */}
+      <div className="flex-1 overflow-auto p-4 bg-gray-100">
+        <div className="flex flex-col items-center">
+          {/* Отображаем страницы одна под другой */}
+          {pages.map((pageContent, pageIndex) => (
+            <div 
+              key={pageIndex}
+              className="bg-white shadow-lg border border-gray-300 mb-8"
+              style={{
+                width: `${A4_WIDTH}px`,
+                minHeight: `${A4_HEIGHT}px`,
+              }}
+            >
+              {/* Отступы как на реальной странице */}
+              <div 
+                className="h-full"
+                style={{
+                  padding: `${PAGE_MARGIN}px`,
+                }}
+              >
+                {pageIndex === 0 ? (
+                  // Первая страница - активный редактор
+                  <EditorContent editor={editor} />
+                ) : (
+                  // Остальные страницы - только отображение
+                  <div 
+                    className="prose prose-lg max-w-none"
+                    dangerouslySetInnerHTML={{ __html: pageContent }}
+                  />
+                )}
+              </div>
+              
+              {/* Номер страницы внизу */}
+              <div className="text-center text-sm text-gray-500 py-2 border-t border-gray-200">
+                Страница {pageIndex + 1}
+              </div>
+            </div>
+          ))}
+          
+        </div>
+      </div>
+
+      {/* Нижняя панель состояния */}
+      <div className="border-t border-gray-200 px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <span>Страниц: {pages.length}</span>
+          <span>Количество слов: {editor?.storage.characterCount?.words() || 0}</span>
+          <span>Символов: {editor?.storage.characterCount?.characters() || 0}</span>
+        </div>
+        <div className="text-xs">
+          Используйте кнопку "Разрыв страницы" или "Добавить страницу" для создания новых страниц
+        </div>
+      </div>
     </div>
   );
 };

@@ -16,169 +16,424 @@ code {
     monospace;
 }
 
-/* Editor styles */
-.editor-wrapper {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.toolbar button {
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.toolbar button:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-}
-
-.toolbar button.active {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
-}
-
-.editor-content {
-  flex: 1;
-  overflow: auto;
-  background: #f5f5f5;
-  padding: 20px;
-}
-
-/* A4 Page Styles */
-.a4-container {
-  max-width: 794px; /* A4 width in pixels at 96 DPI */
-  margin: 0 auto;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-}
-
-.a4-page {
-  background: white;
-  min-height: 1123px; /* A4 height in pixels at 96 DPI */
-  padding: 72px; /* 2.5cm margins */
+.ProseMirror td, .ProseMirror th {
+  min-width: 1em;
+  border: 1px solid #ced4da;
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
   position: relative;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 14pt;
-  line-height: 1.5;
 }
 
-.a4-page::before {
-  content: '';
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 1px solid #e5e7eb;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
   pointer-events: none;
 }
 
-/* TipTap Editor Styles */
-.ProseMirror {
-  min-height: 800px;
-  outline: none;
+.custom-editor-content table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #ced4da;
 }
 
-.ProseMirror h1 {
-  font-size: 16pt;
+.custom-editor-content table td,
+.custom-editor-content table th {
+  min-width: 1em;
+  border: 1px solid #ced4da;
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.custom-editor-content table th {
   font-weight: bold;
-  margin: 24pt 0 12pt 0;
+  text-align: left;
+  background-color: #f8f9fa;
+}
+
+/* Стиль для плейсхолдера (текст-подсказка, когда пусто) */
+.custom-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+/* 1. Настройка "Листа A4" */
+.prose {
+  width: 210mm; /* Ширина A4 */
+  background: white;
+  color: black;
+  font-family: "Times New Roman", Times, serif; /* Стандарт СТО СФУ */
+}
+
+/* 2. Исправление отображения списков, которые Tailwind Prose может скрывать */
+.prose ul {
+  list-style-type: disc !important;
+  padding-left: 1.5em !important;
+}
+
+.prose ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5em !important;
+}
+
+.prose h1 { font-size: 2em; font-weight: bold; text-align: center; text-transform: uppercase; }
+.prose h2 { font-size: 1.5em; font-weight: bold; }
+
+/* 3. Стиль разрыва страницы */
+.page-break {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 40px 0;
+  border-top: 2px dashed #e2e8f0;
+  position: relative;
+  user-select: none;
+}
+
+.page-break span {
+  position: absolute;
+  top: -12px;
+  background: white;
+  padding: 0 15px;
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+}
+
+/* 4. Стили для картинок */
+.prose img {
+  display: block;
+  margin: 20px auto;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+/* Кастомный курсор для TipTap */
+.ProseMirror {
+  min-height: 1000px;
+  outline: none !important;
+}
+
+/* Исправляем цитаты */
+.prose blockquote {
+  border-left: 4px solid #ea580c !important; /* Оранжевый СФУ */
+  font-style: italic;
+  padding-left: 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  quotes: none !important;
+}
+
+/* Реалистичные страницы */
+.editor-canvas {
+  background-color: #f3f4f6; /* Серый фон вокруг "листов" */
+  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ProseMirror {
+  background: white;
+  width: 210mm;
+  min-height: 297mm; /* Высота A4 */
+  padding: 20mm 15mm 20mm 25mm !important; /* Поля по СТО СФУ */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  outline: none !important;
+}
+
+/* Стилизация разрыва страницы как физического разделения */
+.page-break {
+  display: block;
+  height: 50px; /* Промежуток между страницами */
+  background-color: #f3f4f6; /* Цвет фона редактора */
+  margin-left: -25mm !important; /* Перекрываем поля */
+  margin-right: -15mm !important;
+  margin-top: 20mm !important;
+  margin-bottom: 20mm !important;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: default;
+  position: relative;
+}
+
+.page-break::after {
+  content: "Конец страницы";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+
+/* Стили заголовков по СТО СФУ */
+.ProseMirror h1 {
+  font-size: 18pt; /* Примерный размер для глав */
   text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-top: 24pt;
+  margin-bottom: 12pt;
+  display: block;
 }
 
 .ProseMirror h2 {
-  font-size: 14pt;
+  font-size: 16pt;
   font-weight: bold;
-  margin: 18pt 0 9pt 0;
+  margin-top: 18pt;
+  margin-bottom: 8pt;
+  display: block;
 }
 
-.ProseMirror h3 {
-  font-size: 13pt;
-  font-weight: bold;
-  margin: 12pt 0 6pt 0;
+/* Списки */
+.ProseMirror ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  padding-left: 1rem;
 }
 
-.ProseMirror p {
-  margin: 0 0 12pt 0;
-  text-indent: 1.25cm;
-}
-
-.ProseMirror p:first-of-type {
-  text-indent: 0;
-}
-
-.ProseMirror ul,
 .ProseMirror ol {
-  margin: 12pt 0;
-  padding-left: 1.5cm;
+  list-style-type: decimal;
+  margin-left: 1.5rem;
+  padding-left: 1rem;
 }
 
 .ProseMirror li {
-  margin-bottom: 6pt;
+  display: list-item; /* Важно для отображения маркеров */
 }
 
-.ProseMirror blockquote {
-  border-left: 3px solid #ccc;
-  margin: 12pt 0;
-  padding-left: 12pt;
-  font-style: italic;
+/* Изображения и подписи */
+.custom-figure {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.ProseMirror table {
-  border-collapse: collapse;
-  margin: 12pt 0;
-  width: 100%;
-}
-
-.ProseMirror th,
-.ProseMirror td {
-  border: 1px solid #ccc;
-  padding: 6pt 8pt;
-  text-align: left;
-}
-
-.ProseMirror th {
-  background-color: #f9fafb;
-  font-weight: bold;
-}
-
-.ProseMirror img {
+.custom-figure img {
   max-width: 100%;
   height: auto;
+  border: 1px solid #eee;
+}
+
+.figure-caption {
+  margin-top: 10px;
+  font-size: 12pt;
+  text-align: center;
+  font-style: normal;
+  color: #333;
+}
+
+/* Плейсхолдер для подписи, если она пустая */
+.figure-caption:empty::before {
+  content: "Введите название рисунка...";
+  color: #aaa;
+}
+
+/* Принудительно возвращаем отображение заголовков */
+.ProseMirror h1 {
+  display: block !important;
+  font-size: 2em !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  margin-bottom: 0.67em !important;
+}
+
+.ProseMirror h2 {
+  display: block !important;
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+  margin-bottom: 0.5em !important;
+}
+
+/* Принудительно возвращаем отображение списков */
+.ProseMirror ul {
+  display: block !important;
+  list-style-type: disc !important; /* Точки */
+  margin-block-start: 1em !important;
+  margin-block-end: 1em !important;
+  padding-inline-start: 40px !important;
+}
+
+.ProseMirror ol {
+  display: block !important;
+  list-style-type: decimal !important; /* Цифры */
+  margin-block-start: 1em !important;
+  margin-block-end: 1em !important;
+  padding-inline-start: 40px !important;
+}
+
+.ProseMirror li {
+  display: list-item !important; /* Это заставляет маркеры появиться */
+}
+
+/* Стили для подписей под фото */
+.custom-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem 0;
+}
+
+.figure-caption {
+  text-align: center;
+  font-style: italic;
+  margin-top: 10px;
+  color: #666;
+}
+
+/* Контейнер всей фигуры */
+.custom-figure-wrapper {
+  margin: 2rem auto;
+  padding: 10px;
+  max-width: fit-content;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+/* Когда фигура выбрана или её тащат */
+.ProseMirror-selectednode.custom-figure-wrapper {
+  outline: 2px solid #ea580c; /* Оранжевый контур */
+  background: rgba(234, 88, 12, 0.05);
+}
+
+.figure-content img {
   display: block;
-  margin: 12pt auto;
+  max-width: 100%;
+  height: auto;
+  pointer-events: none; /* Отключаем стандартное перетаскивание только картинки */
 }
 
-.page-break {
-  page-break-after: always;
-  border-top: 2px dashed #ccc;
-  margin: 40pt 0;
-  padding-top: 20pt;
+.figure-caption {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #333;
+  min-width: 200px;
+  outline: none;
 }
 
-.footnote {
-  vertical-align: super;
-  font-size: 0.8em;
-  color: #3b82f6;
-  cursor: help;
+/* Стилизация подписи внутри фигуры */
+.figure-caption:focus {
+  background: #fff7ed;
+  border-radius: 4px;
+}
+
+/* Подсветка редактора при наведении перетаскиваемым объектом */
+.ProseMirror-focused {
+  /* можно добавить легкий контур */
+}
+
+/* Стилизация призрака перетаскивания (браузерная тема) */
+[draggable="true"] {
+  user-select: none;
+  -webkit-user-drag: element;
+}
+
+.editor-canvas {
+  /* Чтобы при перетаскивании было видно, куда падает блок */
+  scroll-behavior: smooth;
+}
+
+/* Визуальный фидбек для пользователя */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: "Перетащите сюда главу из меню слева...";
+  color: #adb5bd;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Отключаем скролл всего окна */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* Стили для TipTap внутри листа */
+.prose-container .ProseMirror {
+  outline: none !important;
+  padding: 20mm 15mm 20mm 25mm !important; /* ГОСТ СФУ */
+  min-height: 297mm;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Чтобы тулбар был действительно зафиксирован */
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Красивый скроллбар для редакторов */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.token.function, 
+.token.keyword {
+  color: #f08d49 !important; /* Оранжевый для команд \section */
+}
+
+.token.punctuation {
+  color: #ccc !important; /* Скобки {} */
+}
+
+.token.comment {
+  color: #7c7c7c !important; /* Комментарии % */
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #7ec699 !important; /* Окружения {document} */
+}
+
+/* Скроллбар для темного редактора */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 5px;
+  border: 2px solid #1e1e1e;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
