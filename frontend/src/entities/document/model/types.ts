@@ -1,9 +1,11 @@
 // src/entities/document/model/types.ts
 
-export type CompilationStatus = 'not_compiled' | 'compiled' | 'error' | 'compiling';
+export type CompilationStatus = 'not_compiled' | 'compiled' | 'success' | 'error' | 'compiling';
 
 // Алиас для обратной совместимости с компонентом Badge
-export type DocStatus = CompilationStatus | 'draft'; 
+export type DocStatus = CompilationStatus | 'draft';
+
+
 
 export interface DocumentItem {
   doc_id: number;

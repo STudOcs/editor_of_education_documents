@@ -23,7 +23,7 @@ export const PageBreak = Node.create({
     return [
       'div', 
       mergeAttributes(HTMLAttributes, { 'data-type': 'page-break', class: 'page-break' }), 
-      ['span', {}, 'Разрыв страницы (\\newpage)']
+      ['span', {}, '']
     ];
   },
 

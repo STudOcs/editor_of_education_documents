@@ -1,18 +1,44 @@
 // src/pages/dashboard/Dashboard.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Settings, ChevronDown } from 'lucide-react'; // Иконки
 import { DocumentList } from '../../widgets/document-list/ui/DocumentList';
 import { authService } from '../../shared/api/authService';
+import { userService } from '../../shared/api/userService'; // Импорт сервиса
+import { UserProfile } from '../../entities/user/model/types'; // Импорт типа
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+
+  useEffect(() => {
+    userService.getMe()
+      .then(data => {
+        console.log("Данные профиля получены:", data); // Отладка в консоли
+        setUserProfile(data);
+      })
+      .catch(err => {
+        console.error("Ошибка загрузки профиля:", err);
+        // Если ошибка 401, интерцептор сам выкинет на логин, 
+        // но здесь можно добавить уведомление
+      });
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
     navigate('/login');
   };
+
+  // Генерируем отображаемое имя и инициалы
+  const displayName = userProfile 
+    ? `${userProfile.last_name} ${userProfile.first_name[0] || ''}.` 
+    : 'Загрузка...';
+    
+  const initials = userProfile 
+    ? `${userProfile.last_name[0] || ''}${userProfile.first_name[0] || ''}` 
+    : '??';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -28,14 +54,14 @@ const Dashboard = () => {
           <div className="relative">
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="flex items-center gap-2 p-1 pr-3 hover:bg-gray-50 rounded-full transition-colors border border-transparent hover:border-gray-200"
+              className="flex items-center gap-3 p-1 pr-3 hover:bg-gray-50 rounded-full transition-colors border border-transparent hover:border-gray-200"
             >
-              <div className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold">
-                ИИ
+              <div className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center font-bold text-sm uppercase">
+                {initials}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-xs font-bold text-gray-900 leading-none">Иван Иванов</p>
-                <p className="text-[10px] text-gray-500">студент</p>
+                <p className="text-xs font-bold text-gray-900 leading-none">{displayName}</p>
+                <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-tighter">студент</p>
               </div>
               <ChevronDown size={14} className={`text-gray-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
             </button>

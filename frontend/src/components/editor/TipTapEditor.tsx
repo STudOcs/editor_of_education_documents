@@ -17,8 +17,6 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Document from '@tiptap/extension-document';
 
-
-
 interface TipTapEditorProps {
   initialContent?: string;
   onContentChange?: (content: string) => void;
@@ -64,9 +62,11 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         },
       }),
       Underline,
+      // Исправлено: конфигурация TextAlign (теперь кнопки не будут выдавать ошибку)
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
       }),
       Link.configure({
         openOnClick: false,
@@ -245,9 +245,11 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Верхняя панель инструментов */}
-      <div className="toolbar border-b border-gray-200 px-4 py-3 bg-white flex flex-wrap items-center gap-2 sticky top-0 z-10">
+    /* ВАЖНО: Добавлен h-full и overflow-hidden, чтобы зафиксировать всё внутри компонента */
+    <div className="flex flex-col h-full overflow-hidden bg-gray-100">
+      
+      {/* 1. ФИКСИРОВАННЫЙ ТУЛБАР: добавлен shrink-0 и высокий z-index */}
+      <div className="toolbar border-b border-gray-200 px-4 py-3 bg-white flex flex-wrap items-center gap-2 sticky top-0 z-[60] shrink-0 shadow-sm">
         
         {/* Статистика страниц */}
         <div className="flex items-center border-r border-gray-300 pr-3">
@@ -474,99 +476,18 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
             </svg>
           </button>
+          
         </div>
       </div>
 
-      {/* Модальное окно для ссылки */}
-      {isLinkModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Вставить ссылку</h3>
-            <input
-              type="url"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="w-full border border-gray-300 rounded px-3 py-2 mb-4"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setIsLinkModalOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={setLink}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Вставить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Модальное окно для таблицы */}
-      {isTableModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Вставить таблицу</h3>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Количество строк
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={tableRows}
-                  onChange={(e) => setTableRows(parseInt(e.target.value))}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Количество столбцов
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={tableCols}
-                  onChange={(e) => setTableCols(parseInt(e.target.value))}
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setIsTableModalOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={insertTable}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Вставить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Основное содержимое - редактор с визуализацией страниц */}
-      <div className="flex-1 overflow-auto p-4 bg-gray-100">
+      {/* 2. СКРОЛЛИРУЕМАЯ ОБЛАСТЬ: добавлены стили для прокрутки */}
+      <div className="flex-1 overflow-y-auto p-4 bg-gray-100">
         <div className="flex flex-col items-center">
           {/* Отображаем страницы одна под другой */}
           {pages.map((pageContent, pageIndex) => (
             <div 
               key={pageIndex}
-              className="bg-white shadow-lg border border-gray-300 mb-8"
+              className="bg-white shadow-lg border border-gray-300 mb-8 shrink-0"
               style={{
                 width: `${A4_WIDTH}px`,
                 minHeight: `${A4_HEIGHT}px`,
@@ -601,17 +522,47 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         </div>
       </div>
 
-      {/* Нижняя панель состояния */}
-      <div className="border-t border-gray-200 px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center">
+      {/* 3. ФИКСИРОВАННЫЙ ФУТЕР */}
+      <div className="border-t border-gray-200 px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-4">
           <span>Страниц: {pages.length}</span>
           <span>Количество слов: {editor?.storage.characterCount?.words() || 0}</span>
           <span>Символов: {editor?.storage.characterCount?.characters() || 0}</span>
         </div>
-        <div className="text-xs">
-          Используйте кнопку "Разрыв страницы" или "Добавить страницу" для создания новых страниц
+        <div className="text-xs text-gray-400">
+          СФУ.ДОК — Редактор учебных документов
         </div>
       </div>
+
+      {/* Модальные окна и остальная логика без изменений */}
+      {isLinkModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-semibold mb-4">Вставить ссылку</h3>
+            <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com" className="w-full border border-gray-300 rounded px-3 py-2 mb-4" autoFocus />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setIsLinkModalOpen(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Отмена</button>
+              <button onClick={setLink} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Вставить</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isTableModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-semibold mb-4">Вставить таблицу</h3>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Количество строк</label><input type="number" min="1" max="10" value={tableRows} onChange={(e) => setTableRows(parseInt(e.target.value))} className="w-full border border-gray-300 rounded px-3 py-2" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Количество столбцов</label><input type="number" min="1" max="10" value={tableCols} onChange={(e) => setTableCols(parseInt(e.target.value))} className="w-full border border-gray-300 rounded px-3 py-2" /></div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setIsTableModalOpen(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">Отмена</button>
+              <button onClick={insertTable} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Вставить</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

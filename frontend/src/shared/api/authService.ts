@@ -2,6 +2,16 @@
 import { $api } from './base';
 import { RegisterData, LoginResponse } from '../../entities/user/model/types';
 
+export interface TitleData {
+  last_name: string;
+  first_name: string;
+  middle_name: string;
+  initials: string;
+  group: string;
+  student_card: string;
+  department: string;
+}
+
 export const authService = {
   // Логин через OAuth2 (form-data)
   async login(loginValue: string, passwordValue: string): Promise<LoginResponse> {
@@ -23,6 +33,11 @@ export const authService = {
   async register(data: RegisterData): Promise<any> {
     const response = await $api.post('/auth/register', data);
     return response.data;
+  },
+
+  async getTitleData(): Promise<TitleData> {
+    const { data } = await $api.get<TitleData>('/auth/me/title-data');
+    return data;
   },
 
   logout() {

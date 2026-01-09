@@ -3,66 +3,71 @@ import { ImageRegistry } from '../../../pages/document-editor/DocumentEditor';
 export const latexToHtml = (latex: string, registry: ImageRegistry): string => {
   let html = latex;
 
-  // 0. ПРЕДВАРИТЕЛЬНАЯ ОЧИСТКА ТЕХНИЧЕСКИХ КОМАНД
-  // Удаляем преамбулу до \begin{document} и после \end{document}
   const bodyMatch = html.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
-  if (bodyMatch) {
-    html = bodyMatch[1];
-  }
+  if (bodyMatch) html = bodyMatch[1];
 
-  // Удаляем специфические команды разметки, которые не нужны в визуале
   html = html.replace(/\\newgeometry\{.*?\}/g, '');
   html = html.replace(/\\restoregeometry/g, '');
-  html = html.replace(/\\vfill/g, '<div style="height: 2em;"></div>');
-  html = html.replace(/\\newpage/g, '<div data-type="page-break" class="page-break"><span>Новая страница</span></div>');
-  html = html.replace(/\\tableofcontents/g, '<div style="background: #f9f9f9; padding: 10px; border: 1px dashed #ccc; text-align: center; margin: 10px 0;">[СОДЕРЖАНИЕ ГЕНЕРИРУЕТСЯ АВТОМАТИЧЕСЧКИ]</div>');
+  html = html.replace(/\\vfill/g, '<p style="text-align: center;"><br/></p>');
+  html = html.replace(/\\newpage/g, '<div data-type="page-break" class="page-break"></div>');
+  html = html.replace(/\\+\[\d+mm\]/g, '\\\\'); 
+  html = html.replace(/(?<!\\)\[\d+mm\]/g, ''); 
 
-  // 1. ТИТУЛЬНЫЙ ЛИСТ
   const titlePageRegex = /\\begin\{titlepage\}([\s\S]*?)\\end\{titlepage\}/g;
   html = html.replace(titlePageRegex, (_match, content: string) => {
     let page = content;
-    
-    // Центрирование
-    page = page.replace(/\\begin\{center\}([\s\S]*?)\\end\{center\}/g, '<div style="text-align: center;">$1</div>');
-    
-    // Очистка от скобок групп {...}
-    page = page.replace(/\{([\s\S]*?)\}/g, '$1');
 
-    // Переносы строк LaTeX
-    page = page.replace(/\\\\/g, '<br/>');
-    page = page.replace(/\\\[\d+mm\]/g, '<br/>');
-
-    // Команды размера и начертания
-    page = page.replace(/\\large/g, '');
-    page = page.replace(/\\large /g, '');
-    page = page.replace(/\\textbf\{(.*?)\}/g, '<strong>$1</strong>');
-    page = page.replace(/\{\\footnotesize (.*?)\}/g, '<small style="color: #666;">$1</small>');
-
-    // ТАБЛИЦА ПОДПИСЕЙ (делаем её невидимой)
-    const sigTableRegex = /\\begin\{tabular\}\{.*?\}\s*([\s\S]*?)\\end\{tabular\}/g;
-    page = page.replace(sigTableRegex, (__match, tableBody: string) => {
-      const rows = tableBody.split('\\\\').map(row => {
-        // Игнорируем строки, которые содержат только отступы типа [10mm]
-        if (row.trim().startsWith('[') && row.trim().endsWith(']')) return '';
-        
-        const cells = row.split('&').map(cell => {
-          let c = cell.trim();
-          // Заменяем линию \rule на нижнее подчеркивание
-          c = c.replace(/\\rule\{.*?\}\{.*?\}/g, '<span style="border-bottom: 1px solid black; min-width: 80px; display: inline-block;">&nbsp;</span>');
-          return `<td style="padding: 4px; vertical-align: top; border: none !important;">${c}</td>`;
-        }).join('');
-        return `<tr>${cells}</tr>`;
-      }).filter(r => r !== '').join('');
-      
-      return `<table class="latex-signature-table" style="width: 100%; border: none !important; margin-top: 20px;"><tbody>${rows}</tbody></table>`;
+    // Заменяем \begin{center} на параграфы с центрированием
+    page = page.replace(/\\begin\{center\}([\s\S]*?)\\end\{center\}/g, (_m, inner) => {
+        return inner.split('\\\\').map((line: string) => `<p style="text-align: center;">${line.trim()}</p>`).join('');
     });
 
-    return `<div class="latex-title-page" data-type="titlepage" style="font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.2;">${page}</div>`;
+    const sigTableRegex = /\\begin\{tabular\}[\s\S]*?\{((?:[^{}]|\{[^{}]*\})*)\}([\s\S]*?)\\end\{tabular\}/g;
+
+    page = page.replace(sigTableRegex, (__match, _args, tableBody: string) => {
+      const rows = tableBody.split('\\\\').map(row => {
+        const trimmedRow = row.trim();
+        if (!trimmedRow) return '';
+
+        const cells = trimmedRow.split('&').map(cell => {
+          let c = cell.trim();
+          // Линия подписи (текстом)
+          c = c.replace(/\\rule\{?[\d.]+\w+\}?\{?[\d.]+\w+\}?/g, '________________');
+          // Текст подписи
+          c = c.replace(/\\footnotesize\s*\{(.*?)\}/g, '<small>$1</small>');
+          c = c.replace(/\\footnotesize\s+/g, '<small>');
+          return `<td>${c}</td>`;
+        }).join('');
+
+        return `<tr>${cells}</tr>`;
+      }).filter(r => r !== '').join('');
+
+      // ОБОРАЧИВАЕМ ТАБЛИЦУ В DIV, чтобы TipTap не стер наши намерения
+      return `<div class="signature-section-wrapper"><table class="signature-table"><tbody>${rows}</tbody></table></div>`;
+    });
+
+    page = page.replace(/\\textbf\s*\{(.*?)\}/g, '<strong>$1</strong>');
+    page = page.replace(/\\textbf\s+([^\s\\]+)/g, '<strong>$1</strong>');
+    page = page.replace(/\\large\s*/g, '');
+    page = page.replace(/\\\\/g, '<br/>');
+    page = page.replace(/\{([\s\S]*?)\}/g, '$1'); 
+
+    return `<blockquote class="title-page">${page}</blockquote>`;
   });
 
-  // 2. ТАБЛИЦЫ ОБЫЧНЫЕ
-  const tableRegex = /\\begin\{table\}(?:\[.*?\])?[\s\S]*?\\begin\{tabular\}\{.*?\}\s*([\s\S]*?)\\end\{tabular\}[\s\S]*?\\end\{table\}/g;
-  html = html.replace(tableRegex, (_match: string, tableBody: string) => {
+  html = html.replace(/\\newpage/g, '<div class="page-break"></div>');
+  html = html.replace(/\\section\{(.*?)\}/g, '<h1 style="text-align: center;">$1</h1>');
+  html = html.replace(/\\subsection\{(.*?)\}/g, '<h2 style="text-align: center;">$1</h2>');
+  
+  const figureRegex = /\\begin\{figure\}[\s\S]*?\\includegraphics.*?\{(.*?)\}[\s\S]*?\\caption\{(.*?)\}[\s\S]*?\\end\{figure\}/g;
+  html = html.replace(figureRegex, (_m, file, cap) => {
+    const base64 = registry[file.trim()] || '';
+    return `<figure class="custom-figure" style="text-align: center;"><img src="${base64}" /><figcaption class="figure-caption">${cap}</figcaption></figure>`;
+  });
+
+  // 3. ТАБЛИЦЫ ОБЫЧНЫЕ
+  const mainTableRegex = /\\begin\{table\}(?:\[.*?\])?[\s\S]*?\\begin\{tabular\}\{.*?\}\s*([\s\S]*?)\\end\{tabular\}[\s\S]*?\\end\{table\}/g;
+  html = html.replace(mainTableRegex, (_match: string, tableBody: string) => {
     const rows = tableBody
       .split(/\\\\/)
       .map((row: string) => row.replace(/\\hline/g, '').trim())
@@ -74,38 +79,27 @@ export const latexToHtml = (latex: string, registry: ImageRegistry): string => {
     return `<table><tbody>${rows}</tbody></table>`;
   });
 
-  // 3. КАРТИНКИ
-  const figureRegex = /\\begin\{figure\}(?:\[.*?\])?[\s\S]*?\\includegraphics(?:\[.*?\])?\{(.*?)\}[\s\S]*?\\caption\{(.*?)\}[\s\S]*?\\end\{figure\}/g;
-  html = html.replace(figureRegex, (_match: string, fileName: string, caption: string) => {
-    const name = fileName.trim();
-    const base64 = registry[name] || '';
-    return `<figure class="custom-figure"><img src="${base64}" alt="${caption}" /><figcaption class="figure-caption">${caption}</figcaption></figure>`;
+  // 5. СПИСКИ: очищаем контент внутри от переносов \n, чтобы TipTap не сходил с ума
+  html = html.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g, (_m, content) => {
+    const items = content.replace(/\\item\s+([^\n]+)/g, '<li>$1</li>').replace(/\n/g, '');
+    return `<ul>${items}</ul>`;
+  });
+  html = html.replace(/\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/g, (_m, content) => {
+    const items = content.replace(/\\item\s+([^\n]+)/g, '<li>$1</li>').replace(/\n/g, '');
+    return `<ol>${items}</ol>`;
   });
 
-  // 4. ОСТАЛЬНЫЕ БАЗОВЫЕ ПРАВИЛА
-  html = html.replace(/\\section\{(.*?)\}/g, '<h1>$1</h1>');
-  html = html.replace(/\\subsection\{(.*?)\}/g, '<h2>$1</h2>');
-  html = html.replace(/\\item\s+(.*?)(\n|$)/g, '<li>$1</li>');
-  html = html.replace(/\\begin\{itemize\}/g, '<ul>').replace(/\\end\{itemize\}/g, '</ul>');
-  html = html.replace(/\\begin\{enumerate\}/g, '<ol>').replace(/\\end\{enumerate\}/g, '</ol>');
-  html = html.replace(/\\textbf\{(.*?)\}/g, '<strong>$1</strong>');
-  html = html.replace(/\\textit\{(.*?)\}/g, '<em>$1</em>');
-  
-  // Убираем оставшиеся одиночные обратные слеши и символы LaTeX
-  html = html.replace(/\\ /g, ' ');
   html = html.replace(/~/g, '&nbsp;');
   html = html.replace(/\\the\\year/g, new Date().getFullYear().toString());
 
-  // 5. ОБЕРТКА В ПАРАГРАФЫ
-  const blocks = html.split('\n');
-  html = blocks.map((block: string) => {
-    const t = block.trim();
-    if (!t) return '';
-    if (t.startsWith('<h') || t.startsWith('<table') || t.startsWith('<ul') || t.startsWith('<ol') || t.startsWith('<div') || t.startsWith('<figure')) {
-      return t;
-    }
-    return `<p>${t}</p>`;
+  // 6. УМНАЯ ОБЕРТКА
+  const blocks = html.split(/\n\s*\n/);
+  const finalHtml = blocks.map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    if (/^<(h1|h2|h3|table|blockquote|figure|div|ul|ol)/i.test(trimmed)) return trimmed;
+    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
   }).join('');
 
-  return html;
+  return finalHtml.replace(/>\s+</g, '><');
 };

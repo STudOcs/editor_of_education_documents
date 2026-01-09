@@ -2,7 +2,8 @@ import { useRef } from 'react';
 import { Editor } from '@tiptap/react';
 import { 
   Bold, Italic, Underline, List, ListOrdered, 
-  Table as TableIcon, Heading1, Heading2, Quote, Undo, Redo 
+  Table as TableIcon, Heading1, Heading2, Quote, Undo, Redo, 
+  AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 // Импортируем всё как Icons, чтобы заработал твой код
 import * as Icons from 'lucide-react';
@@ -103,6 +104,33 @@ export const EditorToolbar = ({ editor }: ToolbarProps) => {
       </button>
       <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))}>
         <ListOrdered size={18} />
+      </button>
+
+      <div className="w-px h-6 bg-gray-200 mx-1" />
+
+      <button 
+        onClick={() => editor.chain().focus().setTextAlign('left').run()} 
+        className={btnClass(editor.isActive({ textAlign: 'left' }))}
+      >
+        <AlignLeft size={18} />
+      </button>
+      <button 
+        onClick={() => editor.chain().focus().setTextAlign('center').run()} 
+        className={btnClass(editor.isActive({ textAlign: 'center' }))}
+      >
+        <AlignCenter size={18} />
+      </button>
+      <button 
+        onClick={() => editor.chain().focus().setTextAlign('right').run()} 
+        className={btnClass(editor.isActive({ textAlign: 'right' }))}
+      >
+        <AlignRight size={18} />
+      </button>
+      <button 
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()} 
+        className={btnClass(editor.isActive({ textAlign: 'justify' }))}
+      >
+        <AlignJustify size={18} />
       </button>
 
       <div className="w-px h-6 bg-gray-200 mx-1" />

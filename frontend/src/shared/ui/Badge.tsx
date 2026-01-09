@@ -7,6 +7,7 @@ const statusStyles: Record<DocStatus, string> = {
   compiled: 'bg-green-100 text-green-700',
   error: 'bg-red-100 text-red-700',
   compiling: 'bg-blue-100 text-blue-700 animate-pulse',
+  success: 'bg-green-100 text-green-700',
 };
 
 const statusLabels: Record<DocStatus, string> = {
@@ -15,6 +16,7 @@ const statusLabels: Record<DocStatus, string> = {
   compiled: 'Готов',
   error: 'Ошибка',
   compiling: 'Сборка...',
+  success: 'Готов',
 };
 
 export const Badge = ({ status }: { status: DocStatus }) => (

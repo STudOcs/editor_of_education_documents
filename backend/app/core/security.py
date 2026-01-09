@@ -1,3 +1,4 @@
+import hashlib # <--- Добавляем стандартную либу
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
@@ -5,7 +6,10 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Настройка хеширования (bcrypt)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["sha256_crypt"],
+    deprecated="auto"
+)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)

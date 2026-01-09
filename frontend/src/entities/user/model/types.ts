@@ -1,21 +1,37 @@
 // src/entities/user/model/types.ts
-
-// Данные, которые мы получаем от бэкенда для отображения профиля
 export interface UserProfile {
-  id?: string;
+  user_id: number;
   login: string;
+  email: string;
   last_name: string;
   first_name: string;
-  // Необязательные поля
+  middle_name: string;
+  group_name: string;
+  student_card: string;
+  department: string;
+  registration_date: string;
+}
+
+export interface UserUpdatePayload {
+  email?: string;
+  password?: string;
+  last_name?: string;
+  first_name?: string;
   middle_name?: string;
   group_name?: string;
   student_card?: string;
   department?: string;
-  email?: string; 
 }
 
-// Данные для регистрации (новые пользователи)
-export interface RegisterData extends UserProfile {
+export interface RegisterData {
+  email: string;
+  login: string;
+  last_name: string;
+  first_name: string;
+  middle_name: string;
+  group_name: string;
+  student_card: string;
+  department: string;
   password: string;
 }
 
