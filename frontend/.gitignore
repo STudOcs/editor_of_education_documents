@@ -21,3 +21,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+
+backend/venv/
+backend/media/
+backend/__pycache__/
+*.env
+*/__pycache__/

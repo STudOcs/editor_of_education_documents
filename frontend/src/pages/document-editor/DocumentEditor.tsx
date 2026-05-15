@@ -162,7 +162,7 @@ const DocumentEditor = () => {
           // ИСПРАВЛЕННАЯ ПРОВЕРКА: учитываем 'success' от бэкенда
           if (data.status === 'compiled' || data.status === 'success') {
             alert("Документ успешно скомпилирован!");
-            // Загружаем PDF в превью (если используешь Blob) или просто даем скачать
+            // Загружаем PDF в превью
             loadPdfPreview(docId); 
           } else {
             alert("Ошибка компиляции. Проверьте LaTeX код.");

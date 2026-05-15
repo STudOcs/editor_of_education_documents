@@ -76,7 +76,7 @@ export const htmlToLatex = (
     return `\n\\begin{table}[h]\n  \\centering\n  \\begin{tabular}{${colSpec}}\n    \\hline\n${processedRows}\n  \\end{tabular}\n\\end{table}\n`;
   });
 
-  // 4. СПИСКИ (ФИКС: Добавлены \n для читаемости)
+  // 4. СПИСКИ
   texBody = texBody.replace(/<li>([\s\S]*?)<\/li>/g, '\\item $1\n'); // Добавляем перенос после каждого item
   texBody = texBody.replace(/<ul>([\s\S]*?)<\/ul>/g, '\n\\begin{itemize}\n$1\\end{itemize}\n');
   texBody = texBody.replace(/<ol>([\s\S]*?)<\/ol>/g, '\n\\begin{enumerate}\n$1\\end{enumerate}\n');
@@ -88,7 +88,7 @@ export const htmlToLatex = (
   // УДАЛЯЕМ ВСЕ ОСТАТКИ HTML-ТЕГОВ ИЗ ТЕЛА
   texBody = texBody.replace(/<\/?[^>]+(>|$)/g, "").trim();
 
-  // 3. СБОРКА С ШАБЛОНОМ (Берем голову из оригинального LaTeX)
+  // 3. СБОРКА С ШАБЛОНОМ
   if (templateLatex) {
     let finalLatex = templateLatex;
 
@@ -102,11 +102,10 @@ export const htmlToLatex = (
     }
     let head = "";
     
-    // Ищем точку, где заканчивается "каркас" (титульник + оглавление)
+    
     if (finalLatex.includes('\\restoregeometry')) {
       head = finalLatex.split('\\restoregeometry')[0] + '\\restoregeometry';
     } else {
-      // Если вообще ничего не нашли (маловероятно), просто берем всё до конца
       head = finalLatex;
     }
 

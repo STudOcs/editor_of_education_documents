@@ -1,5 +1,5 @@
 // src/features/document-editor/ui/TipTapEditor.tsx
-import { useEffect } from 'react'; // Добавили импорт
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { DOMParser } from '@tiptap/pm/model';
 import StarterKit from '@tiptap/starter-kit';
@@ -8,6 +8,7 @@ import Image from '@tiptap/extension-image';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useDroppable } from '@dnd-kit/core';
+import TextAlign from '@tiptap/extension-text-align';
 
 import { PageBreak } from '../model/PageBreak';
 import { Figure, Caption } from '../model/Figure';
@@ -35,6 +36,11 @@ export const TipTapEditor = ({ content, onChange, onEditorInit }: TipTapEditorPr
       Table.configure({ resizable: true }),
       TableRow, TableHeader, TableCell,
       Placeholder.configure({ placeholder: 'Перетащите блок сюда...' }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'], // К каким тегам применять выравнивание
+        alignments: ['left', 'center', 'right', 'justify'], // Доступные режимы
+        defaultAlignment: 'left',
+      }),
     ],
     content,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),

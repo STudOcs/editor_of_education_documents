@@ -162,7 +162,7 @@ class CompilerService:
         # Проверяем наличие кириллицы в тексте
         has_cyrillic = bool(re.search('[а-яА-Я]', latex_content))
         if has_cyrillic:
-            log_output.append("🔤 Обнаружен русский текст, добавляется поддержка кириллицы")
+            log_output.append("Обнаружен русский текст, добавляется поддержка кириллицы")
         
         # Создаем безопасную временную директорию
         temp_dir = CompilerService._get_safe_temp_dir()
@@ -171,7 +171,7 @@ class CompilerService:
             # Создаем .tex файл
             tex_file = temp_dir / "document.tex"
             tex_file.write_text(latex_content_with_russian, encoding='utf-8')
-            log_output.append(f"📄 Файл создан: {tex_file}")
+            log_output.append(f"Файл создан: {tex_file}")
             
             # Компилируем (на Windows используем shell=True)
             for i in range(max_runs):
@@ -191,7 +191,7 @@ class CompilerService:
                             timeout=30
                         )
                     except Exception as e:
-                        log_output.append(f"💥 Исключение: {str(e)}")
+                        log_output.append(f"Исключение: {str(e)}")
                         return None, "\n".join(log_output)
                 else:
                     # Для Linux/Docker
@@ -216,7 +216,7 @@ class CompilerService:
                             shell=False
                         )
                     except Exception as e:
-                        log_output.append(f"💥 Исключение: {str(e)}")
+                        log_output.append(f"Исключение: {str(e)}")
                         return None, "\n".join(log_output)
                 
                 # Логируем вывод
@@ -230,7 +230,7 @@ class CompilerService:
                 if result.stderr:
                     for line in result.stderr.split('\n'):
                         if line.strip():
-                            log_output.append(f"  ⚠️ {line[:200]}")
+                            log_output.append(f"  {line[:200]}")
                 
                 if result.returncode != 0:
                     log_output.append(f"❌ Ошибка компиляции (код: {result.returncode})")
@@ -254,14 +254,14 @@ class CompilerService:
                 return pdf_content, "\n".join(log_output)
         
         except Exception as e:
-            log_output.append(f"💥 Общее исключение: {str(e)}")
+            log_output.append(f"Общее исключение: {str(e)}")
             return None, "\n".join(log_output)
         
         finally:
             # Временно оставляем папку для отладки
             pass
         
-        log_output.append("❌ PDF не был создан")
+        log_output.append("PDF не был создан")
         return None, "\n".join(log_output)
     
     @staticmethod
